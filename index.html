@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0A0C10" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nutriție" />
+  <title>Nutriție Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="icon" href="icon-192.png" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0A0C10; --surface: #111318; --card: #161A23; --border: #1F2535;
+      --green: #00D68F; --green-dim: #00D68F18; --green-soft: #00D68F40;
+      --blue: #4D9FFF; --blue-dim: #4D9FFF18;
+      --red: #FF5370; --red-dim: #FF537018;
+      --yellow: #FFD166;
+      --text: #E8EEFF; --muted: #5A6A8A; --sub: #2D3650;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+    button, input, textarea { font-family: inherit; }
+    textarea:focus, input:focus { outline: none; }
+    ::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-thumb { background: var(--sub); border-radius: 2px; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes shimmer { 0%,100% { opacity:.5; } 50% { opacity:1; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Layout */
+    #app { display: flex; flex-direction: column; height: 100dvh; }
+    #header { background: linear-gradient(180deg, var(--surface) 0%, var(--bg) 100%); border-bottom: 1px solid var(--border); padding: 20px 16px 0; flex-shrink: 0; }
+    #content { flex: 1; overflow-y: auto; padding: 16px 16px 80px; }
+    .max-w { max-width: 500px; margin: 0 auto; }
+
+    /* Header */
+    .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .header-date { color: var(--muted); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 3px; }
+    .header-title { font-size: 22px; font-weight: 800; font-family: 'Syne', sans-serif; letter-spacing: -0.5px; background: linear-gradient(135deg, var(--text) 0%, var(--muted) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-badges { display: flex; gap: 8px; }
+    .badge { border-radius: 10px; padding: 6px 12px; text-align: center; }
+    .badge-val { font-weight: 700; font-size: 16px; }
+    .badge-lbl { font-size: 10px; }
+    .nav-tabs { display: flex; }
+    .nav-tab { flex: 1; padding: 10px 0; border: none; background: none; cursor: pointer; font-size: 14px; transition: all 0.2s; border-bottom: 2px solid transparent; }
+
+    /* Cards */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px 16px; margin-bottom: 14px; }
+    .card-sm { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; transition: border-color 0.2s; }
+
+    /* Rings */
+    .rings-row { display: flex; justify-content: space-around; align-items: center; margin-bottom: 20px; }
+    .ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .ring-lbl { color: var(--muted); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+    .divider-v { width: 1px; height: 70px; background: var(--border); }
+
+    /* Grid stats */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-box { background: var(--surface); border-radius: 12px; padding: 12px 14px; }
+    .stat-lbl { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+    .stat-val { color: var(--text); font-weight: 700; font-size: 20px; margin-bottom: 6px; }
+    .stat-unit { font-size: 12px; color: var(--muted); margin-left: 3px; }
+
+    /* Mini bar */
+    .mini-bar { height: 3px; border-radius: 2px; overflow: hidden; }
+    .mini-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+    /* Goal banner */
+    .goal-banner { background: linear-gradient(135deg, var(--green-dim) 0%, var(--card) 100%); border: 1px solid #00D68F30; border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+    .goal-icon { font-size: 28px; }
+    .goal-text { flex: 1; }
+    .goal-tag { color: var(--green); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .goal-desc { color: var(--text); font-size: 14px; margin-top: 2px; }
+    .goal-avg { text-align: right; flex-shrink: 0; }
+    .goal-avg-val { font-weight: 700; font-size: 16px; }
+    .goal-avg-lbl { color: var(--muted); font-size: 10px; }
+
+    /* Input card */
+    .input-card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 16px; margin-bottom: 14px; }
+    .tab-row { display: flex; gap: 6px; margin-bottom: 14px; }
+    .tab-btn { flex: 1; padding: 10px 4px; border: none; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s; }
+    .tab-btn.active { background: var(--green); color: #000; }
+    .tab-btn:not(.active) { background: var(--surface); color: var(--muted); }
+
+    textarea.food-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; color: var(--text); font-size: 14px; resize: none; line-height: 1.6; transition: border-color 0.2s; }
+    textarea.food-input:focus { border-color: var(--green); }
+
+    .btn-primary { width: 100%; margin-top: 10px; padding: 13px; background: var(--green); border: none; border-radius: 12px; color: #000; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; }
+    .btn-primary:disabled { background: var(--sub); cursor: not-allowed; }
+    .btn-primary.loading { animation: shimmer 1.5s infinite; }
+
+    /* File picker overlay */
+    .file-btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .file-btn-wrap { flex: 1; position: relative; border-radius: 12px; overflow: hidden; }
+    .file-btn-face { padding: 13px 0; display: flex; align-items: center; justify-content: center; gap: 7px; font-weight: 700; font-size: 14px; pointer-events: none; border-radius: 12px; }
+    .file-btn-face.camera { background: var(--green-dim); border: 1px solid #00D68F50; color: var(--green); }
+    .file-btn-face.gallery { background: var(--surface); border: 1px solid var(--border); color: var(--muted); }
+    .file-btn-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+
+    /* Preview */
+    .preview-wrap { position: relative; margin-bottom: 10px; }
+    .preview-img { width: 100%; border-radius: 12px; max-height: 220px; object-fit: cover; display: block; }
+    .preview-close { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.75); border: none; border-radius: 50%; width: 30px; height: 30px; color: #fff; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+    /* Tip box */
+    .tip-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+    .tip-box span { font-size: 20px; }
+    .tip-box p { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    /* Drop zone */
+    .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 10px; text-align: center; color: var(--sub); font-size: 12px; }
+
+    /* Error */
+    .error-msg { margin-top: 10px; color: var(--red); font-size: 13px; text-align: center; }
+
+    /* Meal card */
+    .meal-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; animation: fadeUp 0.3s ease; margin-bottom: 10px; }
+    .meal-thumb { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0; }
+    .meal-emoji { width: 52px; height: 52px; border-radius: 10px; background: var(--green-dim); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .meal-info { flex: 1; min-width: 0; }
+    .meal-name { color: var(--text); font-weight: 600; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meal-macros { display: flex; gap: 10px; }
+    .meal-cal { color: var(--green); font-size: 13px; font-weight: 700; }
+    .meal-pro { color: var(--blue); font-size: 13px; font-weight: 700; }
+    .meal-det { color: var(--muted); font-size: 11px; margin-top: 2px; line-height: 1.4; }
+    .meal-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+    .meal-time { color: var(--sub); font-size: 11px; }
+    .meal-del { background: none; border: none; cursor: pointer; color: var(--sub); font-size: 16px; padding: 2px; line-height: 1; transition: color 0.15s; }
+    .meal-del:hover { color: var(--red); }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .empty-icon { font-size: 44px; margin-bottom: 10px; }
+    .empty-title { font-size: 15px; font-weight: 600; color: var(--sub); margin-bottom: 4px; }
+    .empty-sub { font-size: 13px; }
+
+    /* History */
+    .stats-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 16px; }
+    .stat-mini { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 10px; text-align: center; }
+    .stat-mini-val { font-weight: 700; font-size: 20px; }
+    .stat-mini-unit { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .stat-mini-lbl { font-size: 10px; color: var(--sub); }
+
+    .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 16px 14px; margin-bottom: 16px; }
+    .chart-title { color: var(--muted); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 70px; }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .chart-bar-bg { width: 100%; background: var(--surface); border-radius: 4px 4px 0 0; height: 60px; display: flex; align-items: flex-end; }
+    .chart-bar-fill { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.5s ease; }
+    .chart-bar-lbl { font-size: 9px; }
+
+    .day-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; transition: border-color 0.2s; }
+    .day-card.open { border-color: #00D68F50; }
+    .day-header { padding: 16px 18px; cursor: pointer; display: flex; align-items: center; gap: 12px; }
+    .day-info { flex: 1; }
+    .day-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .day-name { font-weight: 700; font-size: 15px; }
+    .day-macros { display: flex; gap: 14px; }
+    .day-mac-val { font-weight: 700; font-size: 16px; }
+    .day-mac-sub { color: var(--muted); font-size: 10px; margin-top: 2px; }
+    .day-arrow { color: var(--muted); font-size: 12px; transition: transform 0.2s; }
+    .day-arrow.open { transform: rotate(180deg); }
+    .day-count { color: var(--muted); font-size: 12px; }
+    .day-meals { border-top: 1px solid var(--border); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; animation: fadeUp 0.2s ease; }
+    .day-meal-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface); border-radius: 12px; }
+    .day-meal-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+    .day-meal-emoji { width: 40px; height: 40px; border-radius: 8px; background: var(--green-dim); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+
+    .section-lbl { color: var(--muted); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+
+    /* Status badge */
+    .status-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+    .badge-ok { background: var(--green-dim); color: var(--green); }
+    .badge-low { background: var(--blue-dim); color: var(--blue); }
+    .badge-over { background: var(--red-dim); color: var(--red); }
+
+    /* Loading overlay */
+    #loading-overlay { position: fixed; inset: 0; background: rgba(10,12,16,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 100; backdrop-filter: blur(4px); }
+    #loading-overlay.show { display: flex; }
+    .spinner { width: 44px; height: 44px; border: 3px solid #00D68F30; border-top-color: #00D68F; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .loading-text { color: var(--green); font-weight: 600; font-size: 15px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <div id="header">
+    <div class="max-w">
+      <div class="header-top">
+        <div>
+          <div class="header-date" id="hdr-date"></div>
+          <div class="header-title">Nutriție Tracker</div>
+        </div>
+        <div class="header-badges" id="hdr-badges"></div>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab" id="nav-today" onclick="switchView('today')">Azi</button>
+        <button class="nav-tab" id="nav-history" onclick="switchView('history')">Istoric</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div class="max-w">
+      <!-- TODAY -->
+      <div id="view-today"></div>
+      <!-- HISTORY -->
+      <div id="view-history" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Analizez...</div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const GOALS = { calories: 1900, protein: 180 };
+const STORE_KEY = 'nutri_days_v1';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentView = 'today';
+let currentTab = 'text';
+let previewData = null; // { url, base64, mimeType, mode }
+let days = {};
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+function loadDays() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; } }
+function saveDays() { try { localStorage.setItem(STORE_KEY, JSON.stringify(days)); } catch {} }
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function nowTime() { return new Date().toLocaleTimeString('ro-RO', { hour:'2-digit', minute:'2-digit' }); }
+function fmtDate(k) { return new Date(k+'T12:00:00').toLocaleDateString('ro-RO', { weekday:'short', day:'numeric', month:'short' }); }
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+days = loadDays();
+document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('ro-RO', { weekday:'long', day:'numeric', month:'long' });
+switchView('today');
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function todayMeals() { return days[todayKey()]?.meals || []; }
+function totalCal() { return todayMeals().reduce((s,m)=>s+m.calories,0); }
+function totalPro() { return todayMeals().reduce((s,m)=>s+m.protein,0); }
+
+function streak() {
+  let s = 0, d = new Date(); d.setHours(12,0,0,0);
+  while(true) { const k=d.toISOString().slice(0,10); if(!days[k]?.meals?.length) break; s++; d.setDate(d.getDate()-1); }
+  return s;
+}
+function avg7Cal() {
+  const keys = Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-i); return d.toISOString().slice(0,10); });
+  const logged = keys.filter(k=>days[k]?.meals?.length);
+  return logged.length ? Math.round(logged.reduce((s,k)=>s+days[k].meals.reduce((ss,m)=>ss+m.calories,0),0)/logged.length) : 0;
+}
+function last7Keys() {
+  return Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-i); return d.toISOString().slice(0,10); });
+}
+function pct(val,max,cap=1) { return Math.min(val/max,cap); }
+function clamp(v,mn,mx) { return Math.min(Math.max(v,mn),mx); }
+
+function statusBadge(cal) {
+  const p = cal/GOALS.calories;
+  if(p < 0.5) return `<span class="status-badge badge-low">Sub obiectiv</span>`;
+  if(p <= 1.05) return `<span class="status-badge badge-ok">✓ Obiectiv atins</span>`;
+  return `<span class="status-badge badge-over">Depășit</span>`;
+}
+
+function miniBar(val, max, color) {
+  return `<div class="mini-bar" style="background:${color}22"><div class="mini-bar-fill" style="width:${pct(val,max)*100}%;background:${color}"></div></div>`;
+}
+
+function svgRing(val, max, color, size=110, stroke=9, unit) {
+  const r=(size-stroke)/2, circ=2*Math.PI*r, p=pct(val,max);
+  const dash=p*circ;
+  return `<svg width="${size}" height="${size}" style="transform:rotate(-90deg);filter:${p>0?`drop-shadow(0 0 6px ${color}60)`:'none'}">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}20" stroke-width="${stroke}"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-dasharray="${dash} ${circ}" stroke-linecap="round" style="transition:stroke-dasharray 0.7s cubic-bezier(0.34,1.56,0.64,1)"/>
+    <text x="${size/2}" y="${size/2-6}" text-anchor="middle" dominant-baseline="middle" style="transform:rotate(90deg);transform-origin:${size/2}px ${size/2}px;fill:#E8EEFF;font-size:17px;font-weight:700;font-family:DM Sans,sans-serif">${Math.round(val)}</text>
+    <text x="${size/2}" y="${size/2+10}" text-anchor="middle" dominant-baseline="middle" style="transform:rotate(90deg);transform-origin:${size/2}px ${size/2}px;fill:#5A6A8A;font-size:10px;font-family:DM Sans,sans-serif">${unit}</text>
+  </svg>`;
+}
+
+// ── View switching ────────────────────────────────────────────────────────────
+function switchView(v) {
+  currentView = v;
+  document.getElementById('view-today').style.display = v==='today' ? '' : 'none';
+  document.getElementById('view-history').style.display = v==='history' ? '' : 'none';
+  document.getElementById('nav-today').style.cssText = `color:${v==='today'?'var(--green)':'var(--muted)'};font-weight:${v==='today'?700:500};border-bottom:2px solid ${v==='today'?'var(--green)':'transparent'}`;
+  document.getElementById('nav-history').style.cssText = `color:${v==='history'?'var(--green)':'var(--muted)'};font-weight:${v==='history'?700:500};border-bottom:2px solid ${v==='history'?'var(--green)':'transparent'}`;
+  renderBadges();
+  if(v==='today') renderToday();
+  else renderHistory();
+}
+
+// ── Render badges ─────────────────────────────────────────────────────────────
+function renderBadges() {
+  const s = streak(), dk = Object.keys(days).length;
+  let html = '';
+  if(s>0) html += `<div class="badge" style="background:#FFD16618;border:1px solid #FFD16640"><div class="badge-val" style="color:var(--yellow)">🔥</div><div class="badge-lbl" style="color:var(--yellow)">${s}z</div></div>`;
+  html += `<div class="badge" style="background:var(--green-dim);border:1px solid #00D68F40"><div class="badge-val" style="color:var(--green)">${dk}</div><div class="badge-lbl" style="color:var(--muted)">zile</div></div>`;
+  document.getElementById('hdr-badges').innerHTML = html;
+}
+
+// ── Render Today ──────────────────────────────────────────────────────────────
+function renderToday() {
+  const cal = totalCal(), pro = totalPro(), avg = avg7Cal();
+  const remCal = Math.max(0, GOALS.calories-cal), remPro = Math.max(0, GOALS.protein-pro);
+
+  let html = `
+  <!-- Rings -->
+  <div class="card">
+    <div class="rings-row">
+      <div class="ring-wrap">${svgRing(cal,GOALS.calories,'#00D68F',110,9,'kcal')}<span class="ring-lbl">Calorii</span></div>
+      <div class="divider-v"></div>
+      <div class="ring-wrap">${svgRing(pro,GOALS.protein,'#4D9FFF',110,9,'g')}<span class="ring-lbl">Proteină</span></div>
+    </div>
+    <div class="grid-2">
+      <div class="stat-box">
+        <div class="stat-lbl">Rămase azi</div>
+        <div class="stat-val">${Math.round(remCal)}<span class="stat-unit">kcal</span></div>
+        ${miniBar(GOALS.calories-remCal,GOALS.calories,'#00D68F')}
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Proteină rămasă</div>
+        <div class="stat-val">${Math.round(remPro)}<span class="stat-unit">g</span></div>
+        ${miniBar(GOALS.protein-remPro,GOALS.protein,'#4D9FFF')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Goal banner -->
+  <div class="goal-banner">
+    <div class="goal-icon">🎯</div>
+    <div class="goal-text">
+      <div class="goal-tag">Obiectiv slăbire</div>
+      <div class="goal-desc">90 kg până pe <b>29 mai</b> · ${GOALS.calories} kcal/zi</div>
+    </div>
+    ${avg>0?`<div class="goal-avg"><div class="goal-avg-val" style="color:${avg<=GOALS.calories?'var(--green)':'var(--red)'}">${avg}</div><div class="goal-avg-lbl">medie 7z</div></div>`:''}
+  </div>
+
+  <!-- Input -->
+  <div class="input-card">
+    <div class="tab-row">
+      <button class="tab-btn ${currentTab==='text'?'active':''}" onclick="switchTab('text')">✏️ Scrie</button>
+      <button class="tab-btn ${currentTab==='photo'?'active':''}" onclick="switchTab('photo')">📸 Poză</button>
+      <button class="tab-btn ${currentTab==='barcode'?'active':''}" onclick="switchTab('barcode')">📦 Cod bare</button>
+    </div>
+    <div id="tab-content"></div>
+    <div id="error-msg"></div>
+  </div>
+
+  <!-- Meals -->
+  <div id="meals-section"></div>`;
+
+  document.getElementById('view-today').innerHTML = html;
+  renderTab();
+  renderMeals();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+  currentTab = t;
+  previewData = null;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderTab();
+  clearError();
+}
+
+function renderTab() {
+  const el = document.getElementById('tab-content');
+  if(!el) return;
+  if(currentTab==='text') {
+    el.innerHTML = `
+      <textarea class="food-input" id="food-text" rows="3" placeholder="Ex: 200g piept de pui la grătar cu orez și salată..."></textarea>
+      <button class="btn-primary" onclick="analyzeText()">⚡ Analizează</button>`;
+    document.getElementById('food-text').addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();analyzeText();} });
+  } else if(currentTab==='photo') {
+    el.innerHTML = renderFilePicker('photo');
+  } else {
+    el.innerHTML = `
+      <div class="tip-box"><span>💡</span><p>Fotografiază <b style="color:var(--text)">codul de bare</b> sau <b style="color:var(--text)">eticheta nutrițională</b> a produsului ambalat.</p></div>
+      ${renderFilePicker('barcode')}`;
+  }
+}
+
+function renderFilePicker(mode) {
+  if(previewData) {
+    const btnLabel = mode==='barcode' ? '📦 Scanează codul' : '🔍 Analizează poza';
+    const loadLabel = mode==='barcode' ? '📦 Scanez...' : '🔍 Analizez...';
+    return `
+      <div class="preview-wrap">
+        <img class="preview-img" src="${previewData.url}" />
+        <button class="preview-close" onclick="clearPreview()">✕</button>
+      </div>
+      <button class="btn-primary" onclick="analyzeImage('${mode}')">${btnLabel}</button>`;
+  }
+  return `
+    <div class="file-btn-row">
+      <div class="file-btn-wrap">
+        <div class="file-btn-face camera">📷 Cameră</div>
+        <input class="file-btn-input" type="file" accept="image/*" capture onchange="handleFile(event,'${mode}')" />
+      </div>
+      <div class="file-btn-wrap">
+        <div class="file-btn-face gallery">🖼️ Galerie</div>
+        <input class="file-btn-input" type="file" accept="image/*" onchange="handleFile(event,'${mode}')" />
+      </div>
+    </div>
+    <div class="drop-zone">sau trage o poză aici</div>`;
+}
+
+function handleFile(e, mode) {
+  const file = e.target.files[0];
+  if(!file || !file.type.startsWith('image/')) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    previewData = { url: ev.target.result, base64: ev.target.result.split(',')[1], mimeType: file.type, mode };
+    renderTab();
+  };
+  r.readAsDataURL(file);
+}
+
+function clearPreview() { previewData = null; renderTab(); }
+function clearError() { const e=document.getElementById('error-msg'); if(e) e.innerHTML=''; }
+function showError(msg) { const e=document.getElementById('error-msg'); if(e) e.innerHTML=`<div class="error-msg">⚠️ ${msg}</div>`; }
+
+// ── AI Analysis ───────────────────────────────────────────────────────────────
+async function analyzeText() {
+  const text = document.getElementById('food-text')?.value?.trim();
+  if(!text) return;
+  const prompt = `Ești nutriționist expert. Analizează această masă și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"scurt în română","emoji":"emoji"}. Porție normală. Masa: ${text}`;
+  await callAI([{type:'text',text:prompt}], null);
+}
+
+async function analyzeImage(mode) {
+  if(!previewData) return;
+  let prompt;
+  if(mode==='barcode') {
+    prompt = `Ești nutriționist expert. Această imagine conține un cod de bare sau etichetă nutrițională. Identifică produsul și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"descriere și gramaj per porție în română","emoji":"emoji relevant"}. Folosește datele de pe etichetă dacă sunt vizibile.`;
+  } else {
+    prompt = `Ești nutriționist expert. Analizează imaginea cu mâncare și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"scurt în română","emoji":"emoji"}. Estimează pentru ce vezi.`;
+  }
+  const content = [
+    {type:'image', source:{type:'base64', media_type:previewData.mimeType, data:previewData.base64}},
+    {type:'text', text:prompt}
+  ];
+  await callAI(content, previewData.url);
+}
+
+async function callAI(content, imageUrl) {
+  showLoading(currentTab==='barcode'?'Scanez codul...':'Analizez...');
+  clearError();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content}] })
+    });
+    const data = await res.json();
+    const raw = data.content?.find(b=>b.type==='text')?.text || '';
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    addMeal({
+      name: parsed.name||'Masă',
+      calories: Number(parsed.calories)||0,
+      protein: Number(parsed.protein)||0,
+      details: parsed.details||'',
+      emoji: parsed.emoji||'🍽️',
+      image: imageUrl||null,
+    });
+    previewData = null;
+    currentTab = 'text';
+  } catch(e) {
+    showError('Nu am putut analiza. Încearcă din nou.');
+  } finally {
+    hideLoading();
+    renderToday();
+  }
+}
+
+function addMeal(meal) {
+  const key = todayKey();
+  if(!days[key]) days[key] = {meals:[]};
+  days[key].meals.unshift({ ...meal, id:Date.now(), time:nowTime() });
+  saveDays();
+}
+
+function deleteMeal(dayKey, id) {
+  if(!days[dayKey]) return;
+  days[dayKey].meals = days[dayKey].meals.filter(m=>m.id!==id);
+  if(!days[dayKey].meals.length) delete days[dayKey];
+  saveDays();
+  if(currentView==='today') renderToday();
+  else renderHistory();
+}
+
+// ── Render Meals ──────────────────────────────────────────────────────────────
+function renderMeals() {
+  const el = document.getElementById('meals-section');
+  if(!el) return;
+  const meals = todayMeals();
+  if(!meals.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🥗</div><div class="empty-title">Nicio masă înregistrată azi</div><div class="empty-sub">Adaugă prima ta masă!</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="section-lbl">Mese azi · ${meals.length}</div>` +
+    meals.map(m=>`
+    <div class="meal-card">
+      ${m.image?`<img class="meal-thumb" src="${m.image}"/>`:`<div class="meal-emoji">${m.emoji}</div>`}
+      <div class="meal-info">
+        <div class="meal-name">${m.name}</div>
+        <div class="meal-macros"><span class="meal-cal">${m.calories} kcal</span><span class="meal-pro">${m.protein}g prot</span></div>
+        ${m.details?`<div class="meal-det">${m.details}</div>`:''}
+      </div>
+      <div class="meal-side">
+        <span class="meal-time">${m.time}</span>
+        <button class="meal-del" onclick="deleteMeal('${todayKey()}',${m.id})">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Render History ────────────────────────────────────────────────────────────
+let openDay = null;
+
+function renderHistory() {
+  const el = document.getElementById('view-history');
+  const dk = Object.keys(days).sort((a,b)=>b.localeCompare(a));
+  const s = streak(), avg = avg7Cal();
+  const l7 = last7Keys();
+
+  let html = '';
+
+  // Stats
+  if(dk.length>0) {
+    html += `<div class="stats-grid">
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--green)">${dk.length}</div><div class="stat-mini-unit">zile</div><div class="stat-mini-lbl">Zile logate</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--blue)">${avg||'—'}</div><div class="stat-mini-unit">kcal</div><div class="stat-mini-lbl">Medie 7z</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:var(--yellow)">${s}</div><div class="stat-mini-unit">🔥</div><div class="stat-mini-lbl">Streak</div></div>
+    </div>`;
+  }
+
+  // Chart
+  const logged7 = l7.filter(k=>days[k]?.meals?.length);
+  if(logged7.length>1) {
+    const bars = l7.slice().reverse().map(k=>{
+      const cal=(days[k]?.meals||[]).reduce((s,m)=>s+m.calories,0);
+      const h=pct(cal,GOALS.calories,1.2)*100;
+      const isT=k===todayKey();
+      const col=cal>GOALS.calories?'var(--red)':cal>0?'var(--green)':'var(--border)';
+      const lbl=isT?'azi':new Date(k+'T12:00:00').toLocaleDateString('ro-RO',{weekday:'short'}).slice(0,2);
+      return `<div class="chart-bar-wrap">
+        <div class="chart-bar-bg"><div class="chart-bar-fill" style="height:${h}%;background:${col}"></div></div>
+        <div class="chart-bar-lbl" style="color:${isT?'var(--green)':'var(--sub)'};font-weight:${isT?700:400}">${lbl}</div>
+      </div>`;
+    }).join('');
+    html += `<div class="chart-card"><div class="chart-title">Ultimele 7 zile</div><div class="chart-bars">${bars}</div></div>`;
+  }
+
+  if(!dk.length) {
+    html += `<div class="empty"><div class="empty-icon">📅</div><div class="empty-sub">Niciun istoric înregistrat încă.</div></div>`;
+  } else {
+    html += dk.map(k=>{
+      const ms=days[k]?.meals||[];
+      const cal=ms.reduce((s,m)=>s+m.calories,0), pro=ms.reduce((s,m)=>s+m.protein,0);
+      const isT=k===todayKey(), isO=openDay===k;
+      const mealRows = isO ? ms.map(m=>`
+        <div class="day-meal-item">
+          ${m.image?`<img class="day-meal-thumb" src="${m.image}"/>`:`<div class="day-meal-emoji">${m.emoji}</div>`}
+          <div style="flex:1;min-width:0">
+            <div style="color:var(--text);font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.name}</div>
+            <div style="display:flex;gap:10px;margin-top:2px">
+              <span style="color:var(--green);font-size:12px;font-weight:700">${m.calories} kcal</span>
+              <span style="color:var(--blue);font-size:12px;font-weight:700">${m.protein}g</span>
+              <span style="color:var(--sub);font-size:11px">${m.time}</span>
+            </div>
+          </div>
+          <button class="meal-del" onclick="deleteMeal('${k}',${m.id});renderHistory()">✕</button>
+        </div>`).join('') : '';
+      return `
+      <div class="day-card ${isO?'open':''}" id="daycard-${k}">
+        <div class="day-header" onclick="toggleDay('${k}')">
+          <div class="day-info">
+            <div class="day-title-row">
+              <span class="day-name" style="color:${isT?'var(--green)':'var(--text)'}">${isT?'Azi':fmtDate(k)}</span>
+              ${statusBadge(cal)}
+            </div>
+            <div class="day-macros">
+              <div>
+                <div class="day-mac-val" style="color:${cal>GOALS.calories?'var(--red)':'var(--green)'}">${cal}</div>
+                ${miniBar(cal,GOALS.calories,cal>GOALS.calories?'#FF5370':'#00D68F')}
+                <div class="day-mac-sub">kcal / ${GOALS.calories}</div>
+              </div>
+              <div>
+                <div class="day-mac-val" style="color:var(--blue)">${pro}g</div>
+                ${miniBar(pro,GOALS.protein,'#4D9FFF')}
+                <div class="day-mac-sub">proteină / ${GOALS.protein}g</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">
+            <span class="day-count">${ms.length} mese</span>
+            <span class="day-arrow ${isO?'open':''}">▾</span>
+          </div>
+        </div>
+        ${isO?`<div class="day-meals">${mealRows}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html;
+  renderBadges();
+}
+
+function toggleDay(k) {
+  openDay = openDay===k ? null : k;
+  renderHistory();
+}
+
+// ── Loading ───────────────────────────────────────────────────────────────────
+function showLoading(txt='Analizez...') {
+  document.getElementById('loading-text').textContent = txt;
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); }
+
+// ── Service Worker ────────────────────────────────────────────────────────────
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
