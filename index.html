@@ -433,42 +433,45 @@ function clearError() { const e=document.getElementById('error-msg'); if(e) e.in
 function showError(msg) { const e=document.getElementById('error-msg'); if(e) e.innerHTML=`<div class="error-msg">⚠️ ${msg}</div>`; }
 
 // ── AI Analysis ───────────────────────────────────────────────────────────────
+const GEMINI_KEY = 'AIzaSyC_w_Gmegxgz_CLbezpTuknOAdD7x-4T_s';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+
 async function analyzeText() {
   const text = document.getElementById('food-text')?.value?.trim();
   if(!text) return;
-  const prompt = `Ești nutriționist expert. Analizează această masă și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"scurt în română","emoji":"emoji"}. Porție normală. Masa: ${text}`;
-  await callAI([{type:'text',text:prompt}], null);
+  const prompt = `Esti nutriționist expert. Analizează această masă și returnează DOAR JSON valid (fara markdown, fara backticks): {"name":"...","calories":number,"protein":number,"details":"scurt in romana","emoji":"emoji"}. Portie normala. Masa: ${text}`;
+  await callGemini([{text: prompt}], null);
 }
 
 async function analyzeImage(mode) {
   if(!previewData) return;
   let prompt;
   if(mode==='barcode') {
-    prompt = `Ești nutriționist expert. Această imagine conține un cod de bare sau etichetă nutrițională. Identifică produsul și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"descriere și gramaj per porție în română","emoji":"emoji relevant"}. Folosește datele de pe etichetă dacă sunt vizibile.`;
+    prompt = `Esti nutriționist expert. Imaginea contine un cod de bare sau etichetă nutrițională. Identifică produsul și returnează DOAR JSON valid (fara markdown, fara backticks): {"name":"...","calories":number,"protein":number,"details":"descriere si gramaj per portie in romana","emoji":"emoji relevant"}. Foloseste datele de pe etichetă daca sunt vizibile.`;
   } else {
-    prompt = `Ești nutriționist expert. Analizează imaginea cu mâncare și returnează DOAR JSON valid (fără markdown): {"name":"...","calories":number,"protein":number,"details":"scurt în română","emoji":"emoji"}. Estimează pentru ce vezi.`;
+    prompt = `Esti nutriționist expert. Analizează imaginea cu mancare și returnează DOAR JSON valid (fara markdown, fara backticks): {"name":"...","calories":number,"protein":number,"details":"scurt in romana","emoji":"emoji"}. Estimeaza pentru ce vezi.`;
   }
-  const content = [
-    {type:'image', source:{type:'base64', media_type:previewData.mimeType, data:previewData.base64}},
-    {type:'text', text:prompt}
-  ];
-  await callAI(content, previewData.url);
+  await callGemini([
+    {inline_data: {mime_type: previewData.mimeType, data: previewData.base64}},
+    {text: prompt}
+  ], previewData.url);
 }
 
-async function callAI(content, imageUrl) {
+async function callGemini(parts, imageUrl) {
   showLoading(currentTab==='barcode'?'Scanez codul...':'Analizez...');
   clearError();
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch(GEMINI_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content}] })
+      body:JSON.stringify({ contents:[{ parts }] })
     });
     const data = await res.json();
-    const raw = data.content?.find(b=>b.type==='text')?.text || '';
-    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
     addMeal({
-      name: parsed.name||'Masă',
+      name: parsed.name||'Masa',
       calories: Number(parsed.calories)||0,
       protein: Number(parsed.protein)||0,
       details: parsed.details||'',
@@ -478,7 +481,7 @@ async function callAI(content, imageUrl) {
     previewData = null;
     currentTab = 'text';
   } catch(e) {
-    showError('Nu am putut analiza. Încearcă din nou.');
+    showError('Nu am putut analiza. Incearca din nou.');
   } finally {
     hideLoading();
     renderToday();
