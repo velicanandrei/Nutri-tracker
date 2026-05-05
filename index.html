@@ -467,7 +467,9 @@ async function callGemini(parts, imageUrl) {
       body:JSON.stringify({ contents:[{ parts }] })
     });
     const data = await res.json();
+    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if(!raw) throw new Error('Raspuns gol de la AI: ' + JSON.stringify(data));
     const clean = raw.replace(/```json|```/g,'').trim();
     const parsed = JSON.parse(clean);
     addMeal({
@@ -481,7 +483,7 @@ async function callGemini(parts, imageUrl) {
     previewData = null;
     currentTab = 'text';
   } catch(e) {
-    showError('Nu am putut analiza. Incearca din nou.');
+    showError('Eroare: ' + (e.message || JSON.stringify(e)));
   } finally {
     hideLoading();
     renderToday();
